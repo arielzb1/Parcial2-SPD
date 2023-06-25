@@ -1,0 +1,127 @@
+/*
+Nombre: Ariel Zubrzycki
+EJ: Diseñar un sistema de incendio utilizando Arduino que pueda 
+detectar cambios de temperatura y activar un servo motor en caso de detectar un 
+incendio. Además, se mostrará la temperatura actual y la estación 
+del año en un display LCD. 
+*/
+#define servoPin 12
+#include <Servo.h>
+#define sensorTemperatura 11
+#define ledUno 10
+#define ledDos 9
+#include <LiquidCrystal.h>
+LiquidCrystal lcd(2, 3, 4, 5, 6, 7);
+Servo myServo;
+
+int sensor = 0;
+int gradosCelsius = 0;
+int estado = LOW;
+int sistema;
+void setup()
+{
+  Serial.begin(9600);
+  lcd.begin(16, 2);
+  myServo.attach(servoPin);
+  myServo.attach(servoPin, 500, 2500);
+  pinMode(11, INPUT);
+  pinMode(sensorTemperatura, INPUT);
+  pinMode(ledUno, OUTPUT);
+  pinMode(ledDos, OUTPUT);
+}
+
+void loop()
+{
+  sensor = digitalRead(11);
+  Serial.println(sensor);
+  
+  if (sensor == LOW) 
+  {
+    estado = !estado;
+    digitalWrite(ledUno, estado);
+    sistema = estado;
+    delay(500);
+  }
+ 
+  if(sistema == HIGH)
+  {
+    temperaturaActual();
+  	mostrarEnPantalla();
+  }
+}
+
+void temperaturaActual()
+{
+  gradosCelsius = analogRead(A0);
+  gradosCelsius = map(gradosCelsius, 20, 358, 0, 50);
+  Serial.println(gradosCelsius);
+}
+
+void determinarEstacion()
+{
+  if(gradosCelsius >= 0 && gradosCelsius < 10)
+  {
+    lcd.print("EST:INVIERNO"); 
+  }
+  else
+  {
+    if(gradosCelsius >= 10 && gradosCelsius < 20)
+    {
+      lcd.print("EST:OTONO"); 
+    }
+    else
+    {
+      if(gradosCelsius >= 20 && gradosCelsius < 25)
+      {
+        lcd.print("EST:PRIMAVERA"); 
+      }
+      else
+      {
+        if(gradosCelsius >= 25 && gradosCelsius <= 40)
+        {
+          lcd.print("EST:VERANO"); 
+        }
+        else
+        {
+          if(gradosCelsius > 40)
+          {
+            lcd.print("INCENDIO"); 
+          }
+        }
+      }
+    }
+  }
+}
+
+void alarmaDeIncendio()
+{
+  myServo.write(180);
+  delay(500);
+  myServo.write(0);
+  digitalWrite(ledDos, HIGH);
+  delay(100);
+  digitalWrite(ledDos, LOW);
+}
+
+void mostrarEnPantalla()
+{
+  lcd.clear();
+  if(gradosCelsius < 40)
+  {
+    lcd.setCursor(0,0); 
+    lcd.print("TEMP:");
+    lcd.print(gradosCelsius);
+    lcd.print("C");
+    lcd.setCursor(0,1);
+    determinarEstacion();
+  }
+  else
+  {
+    lcd.setCursor(3,0);
+    lcd.print("SE DETECTO");
+    lcd.setCursor(3,1);
+    lcd.print("UN INCENDIO");
+    alarmaDeIncendio();
+  }
+  delay(200);
+}
